@@ -257,6 +257,113 @@ is a core SOC and threat hunting skill.
 - Background noise vs intentional traffic
 - Passive device identification through traffic patterns
 
+---
+
+## Phase 6: HTTPS Traffic Analysis (github.com)
+
+**Filter:** `ip.addr == 140.82.121.3`
+
+### TCP + TLS Handshake Combined
+Browser opened **3 parallel TCP connections** to GitHub (ports 50978, 50979, 50980 → 443)
+to load HTML, CSS, and JS simultaneously.
+
+| Step | Packet | What Happens |
+|:-----|:-------|:-------------|
+| TCP SYN | 9593 | Connection request to port 443 |
+| TCP SYN-ACK | 9611 | GitHub accepts |
+| TCP ACK | 9612 | Connection established |
+| TLS Client Hello | 9615 | MacBook sends supported ciphers + SNI=www.github.com |
+| TLS Server Hello | 9646 | GitHub selects cipher, encryption begins |
+| Application Data | 9656+ | All content encrypted — unreadable |
+
+### Cipher Suite Negotiation
+**Client Hello** offered 16 cipher suites (strongest first, weakest last).
+**Server Hello** selected: `TLS_AES_128_GCM_SHA256 (0x1301)` — a strong TLS 1.3 cipher.
+
+| Component | Value | Strength |
+|:----------|:------|:---------|
+| Encryption | AES-128 | Strong |
+| Mode | GCM (Galois/Counter Mode) | Modern, secure |
+| Hash | SHA-256 | Strong |
+
+Weak ciphers like AES_128_CBC_SHA were offered for backward compatibility 
+but not selected by GitHub's server.
+
+### JA3 / JA3S Fingerprinting
+- **JA3 Fullstring:** 771,4865,43-51
+- **JA3S Hash:** f4febc55ea12b31ae17cfb7e614afda8
+
+JA3/JA3S hashes create unique fingerprints for client and server TLS configurations.
+SOC teams maintain databases of known malware JA3 hashes for threat detection.
+
+### HTTP vs HTTPS — Direct Comparison
+
+| | HTTP (example.com) | HTTPS (github.com) |
+|:--|:---|:---|
+| Content | Fully readable in Wireshark | "Application Data" — encrypted |
+| Headers | Host, User-Agent, Response visible | Hidden after handshake |
+| Hex dump | ASCII readable | Encrypted, unreadable |
+| Target site | Visible in Host header | Only visible in SNI (Client Hello) |
+| Risk | Anyone on the network can read everything | Only endpoints can decrypt |
+
+---
+
+## Phase 7: HTTP File Download Analysis (CERN — First Website)
+
+**Command:** `curl -O http://info.cern.ch/hypertext/WWW/TheProject.html`
+
+### Request
+```
+GET /hypertext/WWW/TheProject.html HTTP/1.1
+Host: info.cern.ch
+User-Agent: curl/8.7.1
+```
+
+### Response
+```
+HTTP/1.1 200 OK
+Content-Type: text/html
+```
+
+### Key Observation: Full Content Visible
+The entire HTML source code of the world's first web page was readable 
+inside the packet — including page title, headings, links, and body text.
+This is only possible because HTTP transmits data **unencrypted**.
+
+### TCP Segmentation Observed
+- Total page size: 2,450 bytes
+- Split into 2 TCP segments: #46 (1,440 bytes) + #48 (1,010 bytes)
+- MSS (Max Segment Size) = 1,460 bytes — data exceeding this is split
+- Wireshark reassembled both segments for display
+
+### What Wireshark Can and Cannot See
+
+| Visible in Wireshark | Not Visible in Wireshark |
+|:---------------------|:-------------------------|
+| Source/destination IP | Where file was saved on disk |
+| File content (if HTTP) | What happened after download |
+| File name (from URL) | Which folder it was written to |
+| File size | Whether file was opened or executed |
+
+This is why SOC teams combine **network monitoring (Wireshark/IDS)** with 
+**endpoint detection (EDR)** and **SIEM correlation** for complete visibility.
+
+---
+
+## C2 (Command & Control) Concept — SOC Context
+
+During this lab, all observed traffic was legitimate (Spotify, GitHub, CERN).
+However, the same analysis techniques apply to detecting malicious C2 traffic:
+
+| SOC Technique | What It Detects |
+|:-------------|:----------------|
+| DNS monitoring | Suspicious domain queries (e.g., randomized C2 domains) |
+| SNI inspection | Malicious domains in TLS Client Hello |
+| JA3 matching | Known malware TLS fingerprints |
+| Beacon detection | Regular-interval connections to same IP (C2 check-in pattern) |
+| Traffic volume | Unusual data exfiltration (e.g., large uploads at night) |
+| User-Agent analysis | Non-browser tools (curl, python-requests, nikto) |
+
 ## Privacy Considerations
 - All internal IPs are RFC 1918 private addresses
 - No credentials or sensitive data captured
