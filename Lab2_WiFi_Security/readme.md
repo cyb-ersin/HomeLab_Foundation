@@ -1,4 +1,4 @@
-# Lab 2— WiFi Security: WPA2 Handshake Capture & Crack Attempt
+# Lab 2.5 — WiFi Security: WPA2 Handshake Capture & Crack Attempt
 
 ![Status](https://img.shields.io/badge/Status-Completed-brightgreen)
 ![Type](https://img.shields.io/badge/Type-Offensive%20%2F%20Defensive-red)
@@ -11,6 +11,7 @@
 This lab simulates a **black-box WiFi penetration test** against a home network (Fritz!Box router) using a dedicated Kali Linux machine and an external wireless adapter. The objective was to capture a WPA2 4-way handshake and attempt offline password cracking — while documenting both the attacker and defender perspectives.
 
 > **Scope:** Own home network only. All activities were authorized and performed in a controlled lab environment.
+> **AP Filter:** All captures were strictly scoped using `--bssid` filter — only the authorized target AP was targeted at all times. No third-party networks were captured or attacked.
 
 ---
 
@@ -35,6 +36,9 @@ This lab simulates a **black-box WiFi penetration test** against a home network 
 | `airodump-ng` | Wireless reconnaissance & packet capture |
 | `aireplay-ng` | Deauthentication attack |
 | `aircrack-ng` | Offline WPA2 password cracking |
+| `hcxdumptool` | Clientless PMKID capture — directly from AP, no client needed |
+| `hcxpcapngtool` | Convert pcapng capture to hashcat-compatible hash format |
+| `hashcat` | GPU/CPU accelerated offline hash cracking (22000 mode) |
 | `macchanger` | MAC address spoofing (identity evasion) |
 | `rockyou.txt` | Wordlist for dictionary attack |
 
@@ -128,6 +132,80 @@ sudo aircrack-ng -w /usr/share/wordlists/rockyou.txt /home/holy/capture4-01.cap
 
 ---
 
+## Phase 3.5: PMKID Attack (Clientless)
+
+### Why PMKID?
+
+The classic deauth method requires a connected client. In real-world scenarios, an attacker cannot always wait for a client to connect. The **PMKID attack** (discovered 2018) solves this — it requests the PMKID hash directly from the AP, with no client involvement.
+
+| | Classic Handshake | PMKID |
+|---|---|---|
+| Client required | ✅ Yes | ❌ No |
+| Attack duration | Wait for client | Seconds |
+| Detectable | Yes (deauth spike) | Very difficult |
+| Internet needed | No | No |
+
+### 3.5.1 hcxdumptool v7.0.0 — No Third Party Monitor Mode
+
+hcxdumptool v7.0.0 manages monitor mode internally. airmon-ng must be stopped first:
+
+```bash
+sudo airmon-ng stop wlan1mon
+sudo systemctl stop NetworkManager
+```
+
+### 3.5.2 PMKID Capture
+
+BSSID filter applied to scope the attack to the authorized target only:
+
+```bash
+sudo hcxdumptool -i wlan1 -w /home/holy/pmkid.pcapng --bssid 42:65:DE:04:8A:B9
+```
+
+| Parameter | Purpose |
+|---|---|
+| `--bssid 42:65:DE:04:8A:B9` | Restrict capture to authorized AP only — no other networks targeted |
+
+**Result after ~7 minutes:**
+```
+377786 packets captured by kernel
+92 packets dropped by kernel
+```
+
+### 3.5.3 Convert to Hash Format
+
+```bash
+hcxpcapngtool -o /home/holy/pmkid.hash /home/holy/pmkid.pcapng
+```
+
+**Key output:**
+```
+ESSID (total unique):              19
+RSN PMKID written to hash file:     3
+EAPOL pairs written to hash file:   5
+Hashes: 8 digests; 6 unique salts
+```
+
+> ✅ **Scope Control:** `--bssid` filter was applied — only the authorized target AP was captured. No other networks were targeted.
+
+### 3.5.4 Offline Cracking with Hashcat
+
+```bash
+hashcat -m 22000 /home/holy/pmkid.hash /usr/share/wordlists/rockyou.txt --force
+```
+
+**Result:**
+```
+Device:  Intel Core i5-5200U (CPU)
+Speed:   3,515 H/s
+Time:    ~6 hours 42 minutes
+Result:  Key not found — strong password confirmed
+```
+
+> **Key Insight:** Cracking is 100% offline — no internet required at any stage.
+
+---
+
 ## Phase 4: Identity Evasion (MAC Spoofing)
 
 To remain anonymous during the attack, MAC address should be randomized before initiating capture:
@@ -154,7 +232,7 @@ macchanger -s wlan1mon
 | **Deauth frames** | Wireshark filter: `wlan.fc.type_subtype == 0x000c` — sudden deauth spike is a clear indicator |
 | **Fritz!Box logs** | Unknown MAC address appears in connected devices log |
 | **Signal anomaly** | Sudden client disconnection followed by immediate reconnection |
-| **Passive monitoring** | IDS/SIEM alert on mass deauth frames (Lab 3 objective) |
+| **Passive monitoring** | IDS/SIEM alert on mass deauth frames — next lab objective |
 
 ### 5.2 Response Actions
 
@@ -180,7 +258,8 @@ Sends email notification when an unknown device joins the network.
 | Tactic | Technique | ID | Description |
 |---|---|---|---|
 | Reconnaissance | Network Sniffing | T1040 | airodump-ng passive scan |
-| Credential Access | Brute Force: Password Cracking | T1110.002 | aircrack-ng dictionary attack |
+| Credential Access | Brute Force: Password Cracking | T1110.002 | aircrack-ng / hashcat dictionary attack |
+| Credential Access | Network Sniffing (PMKID) | T1040 | hcxdumptool clientless PMKID capture |
 | Defense Evasion | Masquerading | T1036 | MAC address spoofing with macchanger |
 | Initial Access | Valid Accounts (attempted) | T1078 | WPA2 PSK crack attempt |
 
@@ -192,15 +271,27 @@ Sends email notification when an unknown device joins the network.
 **Severity:** High
 **Detail:** A 4-way handshake was captured within minutes using standard tooling. Any attacker within RF range can capture this handshake and attempt offline cracking indefinitely.
 
-### Finding 2 — Client MAC Randomization
-**Severity:** Informational
-**Detail:** The connected client (`BE:F8:5A:1C:92:C2`) uses MAC randomization. This slightly complicates targeted deauth but does not prevent broadcast deauth attacks.
+### Finding 2 — PMKID Captured Without Client
+**Severity:** High
+**Detail:** Using hcxdumptool, PMKID hashes were captured directly from the AP with no connected client required. This eliminates the need to wait for a client — making the attack faster and harder to detect.
 
-### Finding 3 — AP MAC Randomization (Fritz!Box)
+### Finding 3 — Scope Control via BSSID Filter
 **Severity:** Informational
-**Detail:** Fritz!Box BSSID changed between sessions. Modern routers increasingly use this as a privacy feature. Does not prevent handshake capture.
+**Detail:** hcxdumptool by default captures PMKIDs from all nearby APs. `--bssid` filter was applied throughout this lab to restrict capture to the authorized target only. In real engagements, this is a mandatory ethical and legal requirement.
 
-### Finding 4 — Strong Password Resists Dictionary Attack
+### Finding 4 — Cracking is Fully Offline
+**Severity:** High
+**Detail:** Both handshake cracking and PMKID cracking require zero internet connectivity. Attacker can capture hashes in the field and crack them days later on a more powerful machine.
+
+### Finding 5 — Client MAC Randomization
+**Severity:** Informational
+**Detail:** The connected client uses MAC randomization. This slightly complicates targeted deauth but does not prevent broadcast deauth or PMKID attacks.
+
+### Finding 6 — AP MAC Randomization (Fritz!Box)
+**Severity:** Informational
+**Detail:** Fritz!Box BSSID changed between sessions. Modern routers increasingly use this as a privacy feature. Does not prevent handshake or PMKID capture.
+
+### Finding 7 — Strong Password Resists Dictionary Attack
 **Severity:** Positive Finding
 **Detail:** The target password was not present in rockyou.txt (14M entries). Complex, long passphrases provide meaningful resistance against offline dictionary attacks.
 
@@ -209,10 +300,12 @@ Sends email notification when an unknown device joins the network.
 ## Lessons Learned
 
 1. **WPA2 is vulnerable to offline cracking** — the handshake can be captured passively; password strength is the last line of defense.
-2. **Deauth is detectable** — a spike in deauth frames is a reliable IDS signature.
-3. **MAC randomization adds friction** but does not stop attacks — broadcast deauth bypasses client-specific targeting.
-4. **No IDS = no visibility** — without Lab 3 (Snort/Suricata), this attack would go completely undetected in real time.
-5. **Fritz!Box push notifications** are a simple, effective first-layer alert mechanism.
+2. **PMKID eliminates the client requirement** — an attacker does not need to wait for a client; the AP itself leaks the PMKID hash.
+3. **Cracking is fully offline** — no internet needed at any stage; hashes can be captured in the field and cracked later on a powerful machine.
+4. **Deauth is detectable, PMKID is not** — deauth flood leaves a clear IDS signature; PMKID attack appears as normal association traffic.
+5. **Scope control is critical** — hcxdumptool captures ALL nearby networks by default; `--bssid` filter must be used in real engagements.
+6. **MAC randomization adds friction** but does not stop attacks — broadcast deauth and PMKID bypass client-specific targeting.
+7. **No IDS = no visibility** — without an IDS/SIEM, both attacks went completely undetected in real time.
 
 ---
 
@@ -223,24 +316,13 @@ Sends email notification when an unknown device joins the network.
 | 🔴 High | Use WPA3 if router supports it — resistant to offline handshake attacks |
 | 🔴 High | Use long, random passphrase (20+ chars) — maximizes cracking resistance |
 | 🟡 Medium | Enable Fritz!Box push notifications for new connections |
-| 🟡 Medium | Deploy IDS (Snort/Suricata) — Lab 3 objective |
+| 🟡 Medium | Deploy IDS (Snort/Suricata) for real-time detection |
 | 🟢 Low | Periodic review of connected devices |
 | 🟢 Low | Enable MAC filtering as additional layer |
 
 ---
 
-## Next Steps → Lab 3
 
-This lab highlighted a critical gap: **real-time detection**.
-
-The deauth attack and handshake capture happened silently — no alerts, no logs, no visibility.
-
-**Lab 3** will address this by deploying **Snort IDS + Graylog SIEM** to:
-- Detect deauth flood attacks in real time
-- Generate alerts for unknown MAC addresses
-- Centralize all security events into a dashboard
-
----
 
 ## References
 
@@ -250,4 +332,4 @@ The deauth attack and handshake capture happened silently — no alerts, no logs
 - [WPA2 4-Way Handshake — IEEE 802.11i](https://en.wikipedia.org/wiki/IEEE_802.11i-2004)
 ---
 
-*Lab completed: 2026-03-19 | Author: holy@h4des | Platform: Kali Linux 6.18.12*
+*Lab completed: 2026-03-20 | Author: holy@h4des | Platform: Kali Linux 6.18.12*
