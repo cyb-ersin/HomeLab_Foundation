@@ -1,8 +1,9 @@
 # Homelab-foundation
 
-![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Status](https://img.shields.io/badge/Status-Completed-brightgreen)
 ![Certs](https://img.shields.io/badge/CompTIA-A%2B%20%7C%20Sec%2B-blue)
 ![Labs](https://img.shields.io/badge/Labs-4%20Completed-orange)
+![Next](https://img.shields.io/badge/Next-homelab__AEGIS-red)
 
 ## About
 
@@ -10,7 +11,7 @@ Hands-on networking and cybersecurity foundation labs.
 Built alongside CompTIA studies to develop practical skills in network analysis, traffic inspection, wireless security, and network defense.
 This repository covers **foundational skills** — the building blocks before advanced attack/defense scenarios.
 
-> Advanced scenarios continue in **Operation Crimson Gate** *(coming soon)*
+> Advanced scenarios continue in **[homelab_AEGIS](https://github.com/cyb-ersin/homelab_AEGIS)** *(in progress)*
 
 ---
 
@@ -54,7 +55,7 @@ This repository covers **foundational skills** — the building blocks before ad
 | MacBook Pro | 16GB RAM · 500GB SSD | macOS | Management station — scanning, documentation, analysis |
 | iMac 12,1 | 32GB RAM · 500GB HDD | Ubuntu | Lab server — network services, security tools |
 | Kali Laptop | ThinkPad X250 | Kali Linux 6.18 | Pentesting & red team exercises |
-| Ubuntu Laptop | — | Ubuntu | Additional workstation |
+| MacBook Pro | — | VM Ubuntu | Additional workstation |
 | Fritz!Box | — | — | Network gateway, DHCP, DNS |
 | TP-Link RE190 | — | — | Wi-Fi repeater — discovered via MAC analysis in Lab 0 |
 | TP-Link Archer T2U Plus | RTL8821AU | — | External WiFi adapter — monitor mode & packet injection |
@@ -68,7 +69,7 @@ This repository covers **foundational skills** — the building blocks before ad
 | 0 | [Network Discovery](Lab0_Network_Discovery/) | ifconfig, arp, nmap, ping | Network topology mapping, port scanning, MAC analysis, security assessment | ✅ |
 | 1 | [Wireshark Traffic Analysis](Lab1_Wireshark_Traffic_Analysis/) | Wireshark, curl, ping, nslookup | Protocol analysis (ICMP/DNS/HTTP/ARP/TLS), TCP lifecycle, JA3 fingerprinting, passive device ID | ✅ |
 | 2 | [WiFi Security](Lab2_WiFi_Security/) | aircrack-ng suite, hcxdumptool, hashcat, macchanger | WPA2 handshake capture, PMKID attack, deauth, MAC spoofing, offline cracking | ✅ |
-| 3 | [Firewall & Segmentation](Lab3_Firewall_Segmentation/) | ufw, iptables, nmap, hydra | Host firewall, zone segmentation, log analysis, brute force detection | ✅ |
+| 3 | [Firewall & Segmentation](Lab3_Firewall_Segmentation/) | ufw, iptables, nmap, hydra | Host firewall, zone segmentation, brute force detection, log analysis | ✅ |
 
 ---
 
@@ -95,14 +96,20 @@ This repository covers **foundational skills** — the building blocks before ad
 ## Roadmap
 
 ```
-homelab-foundation              ← you are here
+homelab-foundation              ← completed
 ├── Lab 0  Network Discovery     ✅
 ├── Lab 1  Wireshark Analysis    ✅
 ├── Lab 2  WiFi Security         ✅
 └── Lab 3  Firewall & Seg.       ✅
 
-operation-crimson-gate-01       ← coming soon
-└── Enterprise network simulation
+homelab_AEGIS                   ← in progress
+├── Ch.01  IDS Deployment        🔜
+├── Ch.02  SIEM Integration      🔜
+├── Ch.03  Exploitation          🔜
+├── Ch.04  Lateral Movement      🔜
+├── Ch.05  PCAP Forensics        🔜
+├── Ch.06  Rule Writing          🔜
+└── Ch.07  Incident Response     🔜
 ```
 
 ---
