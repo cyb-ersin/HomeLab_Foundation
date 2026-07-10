@@ -1,7 +1,7 @@
 # Homelab_Foundation
 
 ![Status](https://img.shields.io/badge/Status-Completed-brightgreen)
-![Certs](https://img.shields.io/badge/CompTIA-A%2B%20%7C%20Sec%2B-blue)
+![Certs](https://img.shields.io/badge/CompTIA-A%2B%20%7C%20Sec%2B%20%7C%20CySA%2B%20%7C%20CASP-blue)
 ![Labs](https://img.shields.io/badge/Labs-4%20Completed-orange)
 ![Next](https://img.shields.io/badge/Next-homelab__AEGIS-red)
 
