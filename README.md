@@ -13,13 +13,6 @@ This repository covers **foundational skills** — the building blocks before ad
 
 > Advanced scenarios continue in **[homelab_AEGIS](https://github.com/cyb-ersin/homelab_AEGIS)** *(in progress)*
 
----
-
-## Certifications
-
-- CompTIA A+ ✅
-- CompTIA Security+ ✅
-- CompTIA CySA+ *(in progress)*
 
 ---
 
