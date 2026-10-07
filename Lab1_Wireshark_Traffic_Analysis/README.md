@@ -163,21 +163,21 @@ Full TCP lifecycle observed: **Handshake → Data Transfer → Teardown** (10 pa
 ### Normal ARP Behavior
 | Request | Reply |
 |:--------|:------|
-| "Who has 192.168.178.111? Tell 192.168.178.1" | "192.168.178.111 is at 7a:7d:0f:d3:1b:78" |
-| "Who has 192.168.178.78? Tell 192.168.178.111" | "192.168.178.78 is at 9a:03:8e:02:c8:dc" |
+| "Who has 192.168.xxxx? Tell 192.168.xxxx" | "192.168.xxxx is at 7a:7d:0f:xx:xx:xx" |
+| "Who has 192.168.xxxx? Tell 192.168.xxxx1" | "192.168.xxxx is at 9a:03:8e:xx:xx:xx" |
 
 iMac's ARP reply shows the repeater's MAC — consistent with Lab 0 findings.
 
 ### Suspicious Pattern Detected
 Repeated unanswered ARP requests observed:
 ```
-"Who has 192.168.178.65? Tell 192.168.178.97"
+"Who has 192.168.xxxx? Tell 192.168.xxxx"
 ```
 This request appeared **15+ times** throughout the capture with **zero replies**.
 
 **Analysis:**
-- Source: Amazon Fire Stick (192.168.178.97) — identified via HTTP traffic in this lab
-- Target: 192.168.178.65 — **no device exists at this IP**
+- Source: TV Stick (192.168.xxxx) — identified via HTTP traffic in this lab
+- Target: 192.168.xxxx — **no device exists at this IP**
 - Likely cause: Fire Stick searching for a previously paired device
 - Risk assessment: Low (normal device behavior), but in a production environment 
   repeated ARP requests for non-existent hosts could indicate network reconnaissance
@@ -227,7 +227,7 @@ GET /dd.xml HTTP/1.1                          → UPnP device description
 GET /apps/com.spotify.Spotify.TVv2 HTTP/1.1   → Spotify Connect
 ```
 
-**Conclusion:** Device identified as **Amazon Fire Stick** through passive traffic analysis.
+**Conclusion:** Device identified as **TV Stick** through passive traffic analysis.
 This technique — identifying devices by their network behavior rather than active scanning — 
 is a core SOC and threat hunting skill.
 
@@ -265,7 +265,7 @@ is a core SOC and threat hunting skill.
 
 ## Phase 6: HTTPS Traffic Analysis (github.com)
 
-**Filter:** `ip.addr == 140.82.121.3`
+**Filter:** `ip.addr == 140.82.xxxx`
 
 ### TCP + TLS Handshake Combined
 Browser opened **3 parallel TCP connections** to GitHub (ports 50978, 50979, 50980 → 443)
@@ -291,8 +291,8 @@ to load HTML, CSS, and JS simultaneously.
 | Hash | SHA-256 | Strong |
 
 ### JA3 / JA3S Fingerprinting
-- **JA3 Fullstring:** 771,4865,43-51
-- **JA3S Hash:** f4febc55ea12b31ae17cfb7e614afda8
+- **JA3 Fullstring:** 7xx,48xx,4x-5x
+- **JA3S Hash:** f4febc55ea12b31axxxxxxxxxxxxxxxxxxxx
 
 JA3/JA3S hashes create unique fingerprints for client and server TLS configurations.
 SOC teams maintain databases of known malware JA3 hashes for threat detection.
