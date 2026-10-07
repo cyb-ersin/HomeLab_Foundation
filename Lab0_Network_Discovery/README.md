@@ -21,10 +21,10 @@ Discover all devices on my home network, map the topology, scan for open ports, 
 March 12, 2026
 
 ## Network Overview
-- **Network:** 192.168.178.0/24
-- **Subnet Mask:** 255.255.255.0
-- **Gateway:** 192.168.178.1 (Fritz!Box by AVM)
-- **DHCP:** Enabled (assigned by Fritz!Box)
+- **Network:** 192.168.xxxx/24
+- **Subnet Mask:** 255.255.xxxx
+- **Gateway:** 192.168.xxxx
+- **DHCP:** Enabled (assigned by router)
 
 ## Phase 1: Device Discovery
 
@@ -32,7 +32,7 @@ March 12, 2026
 Initial scan showed multiple devices sharing the same MAC address. This was suspicious and required further investigation.
 
 ### Method 2 — Broadcast Ping
-Broadcast ping to 192.168.178.255 forced all devices to respond, revealing hostnames that were not visible in the initial ARP scan. This identified a Wi-Fi Repeater as the source of the shared MAC address.
+Broadcast ping to 192.168.xxxx.255 forced all devices to respond, revealing hostnames that were not visible in the initial ARP scan. This identified a Wi-Fi Repeater as the source of the shared MAC address.
 
 ### Method 3 — Nmap Host Discovery (nmap -sn)
 Full subnet scan confirmed 7 active hosts.
@@ -41,30 +41,30 @@ Full subnet scan confirmed 7 active hosts.
 
 | Device | IP Address | MAC Address | Connection |
 |--------|-----------|-------------|------------|
-| Fritz!Box | 192.168.178.1 | 38:10:D5:xx:xx:xx (AVM) | Direct — Gateway |
-| MacBook Pro | 192.168.178.111 | 7a:7d:0f:xx:xx:xx | Direct to Fritz!Box |
-| Wi-Fi Repeater | 192.168.178.80 | 9A:03:8E:xx:xx:xx | Direct to Fritz!Box |
-| iMac Lab Server | 192.168.178.78 | via Repeater | Through Repeater |
-| Device-01 | 192.168.178.106 | via Repeater | Through Repeater |
-| Device-02 | 192.168.178.112 | via Repeater | Through Repeater |
-| AMZN Firestick | 192.168.178.97 | via Repeater | Through Repeater |
+| Router | 192.168.xxxx| 38:10:D5:xx:xx:xx (AVM) | Direct — Gateway |
+| MacBook Pro | 192.168.xxxx | 7a:7d:0f:xx:xx:xx | Direct to Router |
+| Wi-Fi Repeater | 192.168.xxxx | 9A:03:8E:xx:xx:xx | Direct to Router |
+| iMac Lab Server | 192.168.xxxx | via Repeater | Through Repeater |
+| Device-01 | 192.168.xxxx | via Repeater | Through Repeater |
+| Device-02 | 192.168.xxxx | via Repeater | Through Repeater |
+| TV | 192.168.xxxx | via Repeater | Through Repeater |
 
 ## Network Topology
 ```mermaid
 graph TD
-    Internet[Internet] --> FritzBox[Fritz!Box<br>192.168.178.1<br>Gateway]
-    FritzBox --> MacBook[MacBook Pro<br>192.168.178.111<br>Management Station]
-    FritzBox --> Repeater[Wi-Fi Repeater<br>192.168.178.80]
-    Repeater --> iMac[iMac<br>Lab Server<br>192.168.178.78]
+    Internet[Internet] --> Router[Router<br>192.168.xxx.1<br>Gateway]
+    Router --> MacBook[MacBook Pro<br>192.168.xxxx<br>Management Station]
+    Router --> Repeater[Wi-Fi Repeater<br>192.168.xxxx]
+    Repeater --> iMac[iMac<br>Lab Server<br>192.168.xxxx]
     Repeater --> Device1[Device-01]
     Repeater --> Device2[Device-02 + Device-03]
-    FritzBox -.- Kali[Kali Laptop<br>Pentesting]
-    FritzBox -.- Ubuntu[Ubuntu Laptop<br>Linux Practice]
+    Router -.- Kali[Kali Laptop<br>Pentesting]
+    Router -.- Ubuntu[Ubuntu Laptop<br>Linux Practice]
 ```
 
 ## Phase 2: Port Scanning & Service Detection
 
-### Fritz!Box (192.168.178.1)
+### Router (192.168.xx.1)
 
 | Port | Service | Risk |
 |------|---------|------|
@@ -80,7 +80,7 @@ graph TD
 
 **9 open ports detected. Multiple services running with known security concerns.**
 
-### iMac Lab Server (192.168.178.78)
+### iMac Lab Server (192.168.xxxx)
 
 All 1000 scanned ports returned "filtered" — no services exposed externally.
 UFW firewall confirmed active. Default deny policy in effect.
@@ -100,11 +100,11 @@ UFW firewall confirmed active. Default deny policy in effect.
 
 1. Wi-Fi Repeater causes all connected devices to share a single MAC address — expected Layer 2 behavior, identified through hostname and shared MAC pattern analysis
 2. Broadcast ping reveals information not visible in standard ARP queries
-3. Fritz!Box runs 9 services by default including insecure protocols (FTP, SMB, HTTP)
+3. Router runs 9 services by default including insecure protocols (FTP, SMB, HTTP)
 4. iMac running Ubuntu with UFW follows "default deny" principle — zero exposed services
-5. Device-01 IP changed between scans (.57 to .106) demonstrating dynamic DHCP assignment
+5. Device-01 IP changed between scans (.xx to .xx) demonstrating dynamic DHCP assignment
 6. Only MacBook Pro connects directly to Fritz!Box — all other devices route through repeater
-7. Unknown device (192.168.178.97) identified as Amazon Fire Stick through Wireshark traffic analysis (UPnP dd.xml request + Spotify Connect traffic observed)
+7. Unknown device (192.168.xxxx) identified as TV Stick through Wireshark traffic analysis (UPnP dd.xml request + Spotify Connect traffic observed)
 
 ## Security Recommendations
 1. Disable FTP (port 21) on Fritz!Box if not actively used — replace with SFTP or SCP
